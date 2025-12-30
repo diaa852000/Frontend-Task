@@ -1,7 +1,10 @@
 // src/hooks/useLibraryData.js
 import { useEffect, useState, useMemo } from 'react';
+import useApi from './useApi';
 
 const useLibraryData = ({ storeId = null, searchTerm = '' } = {}) => {
+  const { request } = useApi();
+
   // State for data
   const [books, setBooks] = useState([]);
   const [authors, setAuthors] = useState([]);
@@ -10,31 +13,26 @@ const useLibraryData = ({ storeId = null, searchTerm = '' } = {}) => {
 
   // Fetch all data
   useEffect(() => {
-    fetch('/data/stores.json')
-      .then((response) => response.json())
-      .then((data) => setStores(Array.isArray(data) ? data : [data]))
-      .catch((error) => console.error('Error fetching stores:', error));
-
-    fetch('/data/books.json')
-      .then((response) => response.json())
-      .then((data) => setBooks(Array.isArray(data) ? data : [data]))
-      .catch((error) => console.error('Error fetching books:', error));
-
-    fetch('/data/authors.json')
-      .then((response) => response.json())
-      .then((data) => setAuthors(Array.isArray(data) ? data : [data]))
-      .catch((error) => console.error('Error fetching authors:', error));
-
-    fetch('/data/inventory.json')
-      .then((response) => response.json())
-      .then((data) => setInventory(Array.isArray(data) ? data : [data]))
-      .catch((error) => console.error('Error fetching inventory:', error));
-  }, []);
+    Promise.all([
+      request("/books"),
+      request("/authors"),
+      request("/stores"),
+      request("/inventory"),
+    ])
+      .then(([books, authors, stores, inventory]) => {
+        setBooks(books);
+        setAuthors(authors);
+        setStores(stores);
+        setInventory(inventory);
+      })
+      .catch(console.error);
+  }, [request]);
 
   // Create lookup maps
+
   const authorMap = useMemo(() => {
     return authors.reduce((map, author) => {
-      map[author.id] = { ...author, name: `${author.first_name} ${author.last_name}` };
+      map[author.id] = author.name;
       return map;
     }, {});
   }, [authors]);
@@ -62,7 +60,7 @@ const useLibraryData = ({ storeId = null, searchTerm = '' } = {}) => {
     if (searchTerm.trim()) {
       const lowerSearch = searchTerm.toLowerCase();
       filteredBooks = filteredBooks.filter((book) =>
-        Object.values({ ...book, author_name: authorMap[book.author_id]?.name || 'Unknown Author' })
+        Object.values({ ...book, author_name: authorMap[book.author_id]|| 'Unknown Author' })
           .some((value) => String(value).toLowerCase().includes(lowerSearch))
       );
     }

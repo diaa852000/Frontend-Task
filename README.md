@@ -70,6 +70,7 @@ Routes
 - The mock server is implemented using **json-server** to simulate backend APIs.
 - An `.env` file is used to control whether the application runs against the mock server or a real backend.
 - This allows seamless switching between environments without changing application code.
+- Add script to run the **mock-server** in package.json: ``npm run mock:server``
 
 ## Authentication
 - An `auth` folder was created under `src/auth` to encapsulate authentication logic.
